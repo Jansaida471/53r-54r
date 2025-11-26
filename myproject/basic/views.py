@@ -5,7 +5,8 @@ from django.db import connection
 import json
 from django.views.decorators.csrf import csrf_exempt
 from basic.models  import StudentNew,Users
- 
+from django.contrib.auth.hashers import make_password, check_password
+
 # Create your views here.
 def sample(request):
     return HttpResponse(' hello world') 
@@ -123,7 +124,32 @@ def signUp(request):
         user=Users.objects.create(
         username=data.get('username'),
         email=data.get('email'),
-        password=data.get('password')
+        password=make_password(data.get('password'))
         )
-
     return JsonResponse({"status":'success'},status=200)
+
+@csrf_exempt
+def login(request):
+    if request.method=="POST":
+        data=request.POST
+        print(data)
+        username=data.get('username')
+        password=data.get("password")
+    try:
+        user=Users.objects.get(username=username)
+        if check_password(password,user.password):
+            return JsonResponse({"status":'success'},status=200)
+        else:
+            return JsonResponse({"status":'failure','message':'invalid password'},status=400)
+    except Users.DoesNotExist:
+        return JsonResponse({"status":'failure','message':'user not found'},status=400)
+
+@csrf_exempt
+def check(request):
+    hashed="pbkdf2_sha256$870000$Xizaub8GoxgNg7KuRfR3Ro$v0mh7VUS+6g/uf97sABFV5iCMLs77XGRW9esfuqTp5c="
+    ipdata=request.POST
+    print(ipdata)
+    # hashed=make_password(ipdata.get("ip"))
+    x=check_password(ipdata.get("ip"),hashed)
+    print(x)
+    return JsonResponse({"status":"success","data":x},status=200)
